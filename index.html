@@ -82,6 +82,11 @@
         .logo-glow {
             filter: drop-shadow(0 0 18px rgba(225, 29, 46, 0.35)) drop-shadow(0 4px 10px rgba(0,0,0,0.8));
         }
+
+        .planner-input { width:100%; background:#0B0B0D; color:#fff; border:1px solid #3f3f46; border-radius:10px; padding:12px 13px; outline:none; }
+        .planner-input:focus { border-color:#E11D2E; box-shadow:0 0 0 2px rgba(225,29,46,.15); }
+        .planner-input option { background:#111; color:#fff; }
+        .planner-exercise-card { background:#18181b; border:1px solid #303036; border-radius:12px; padding:13px; }
     </style>
 </head>
 <body class="antialiased selection:bg-ags-red selection:text-white">
@@ -125,6 +130,7 @@
                         Rutinas Gratuitas
                         <span class="bg-ags-red text-white text-[10px] px-1.5 py-0.5 rounded font-bold">FREE</span>
                     </a>
+                    <a href="#mi-planificador" class="text-sm font-semibold uppercase tracking-wider text-gray-300 hover:text-ags-red transition-colors">Mi planificador</a>
                     <a href="#sobre-alejandro" class="text-sm font-semibold uppercase tracking-wider text-gray-300 hover:text-ags-red transition-colors">Sobre Alejandro</a>
                 </nav>
 
@@ -160,6 +166,7 @@
             <a href="#inicio" onclick="toggleMobileMenu()" class="block px-3 py-2.5 rounded-lg text-base font-semibold text-white hover:bg-ags-grayDark">Inicio</a>
             <a href="#servicios" onclick="toggleMobileMenu()" class="block px-3 py-2.5 rounded-lg text-base font-semibold text-white hover:bg-ags-grayDark">Servicios y Planes</a>
             <a href="#rutinas-gratis" onclick="toggleMobileMenu()" class="block px-3 py-2.5 rounded-lg text-base font-semibold text-ags-red hover:bg-ags-grayDark">Rutinas Gratuitas (Free)</a>
+            <a href="#mi-planificador" onclick="toggleMobileMenu()" class="block px-3 py-2.5 rounded-lg text-base font-semibold text-white hover:bg-ags-grayDark">Mi planificador</a>
             <a href="#sobre-alejandro" onclick="toggleMobileMenu()" class="block px-3 py-2.5 rounded-lg text-base font-semibold text-white hover:bg-ags-grayDark">Sobre Alejandro García</a>
         </div>
     </header>
@@ -518,10 +525,95 @@
                     <h3 class="text-2xl font-bold text-white">¿QUIERES UNA PROGRESIÓN 100% ADAPTADA A TUS PALANCAS Y PUNTOS DÉBILES?</h3>
                     <p class="text-sm sm:text-base text-gray-300">Las rutinas genéricas son un gran punto de partida, pero la individualización marca la diferencia para evitar estancamientos y lesiones en muñecas u hombros.</p>
                 </div>
-                <a href="#servicios" class="shrink-0 bg-ags-red hover:bg-ags-darkRed text-white font-sport text-base tracking-wider px-6 py-3.5 rounded-xl transition-all shadow-red-glow">
+                <a href="#servicios" class="shrink-0 bg-ags-red hover:bg-ags-darkRed text-white font-sport text-base tracking-wider px-6 py-3.5 rounded-xl transi
+tion-all shadow-red-glow">
                     SOLICITAR MI RUTINA A MEDIDA
                 </a>
             </div>
+        </div>
+    </section>
+
+    <!-- =====================================================================
+         MI PLANIFICADOR: CONSTRUCTOR DE RUTINAS PERSONALIZADAS
+    ====================================================================== -->
+    <section id="mi-planificador" class="py-20 bg-ags-black border-t border-ags-grayDark relative overflow-hidden">
+        <div class="absolute -right-32 top-20 w-96 h-96 bg-ags-red/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-ags-red/10 border border-ags-red/30 text-ags-red text-xs font-bold tracking-widest uppercase">
+                    <i class="fa-solid fa-calendar-check"></i> Tu entrenamiento, tus reglas
+                </span>
+                <h2 class="text-4xl sm:text-5xl font-bold text-white mt-5 mb-4">MI <span class="text-ags-red">PLANIFICADOR</span></h2>
+                <p class="text-gray-400 leading-relaxed">Construye tu propia rutina semanal. Combina estáticos y básicos, elige tu nivel y organiza cada sesión a tu manera.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-6 mb-8">
+                <div class="lg:col-span-2 bg-ags-dark border border-ags-grayDark rounded-2xl p-5 sm:p-7 shadow-dark-card">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                        <div>
+                            <h3 class="text-2xl font-bold text-white">Constructor de sesiones</h3>
+                            <p class="text-sm text-gray-400 mt-1">Añade ejercicios al día que quieras entrenar.</p>
+                        </div>
+                        <span class="text-xs text-gray-400 bg-ags-grayDark px-3 py-2 rounded-lg"><i class="fa-solid fa-layer-group text-ags-red mr-1"></i> Biblioteca multinivel</span>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <label class="block text-sm text-gray-300 font-semibold">Día de entrenamiento
+                            <select id="planner-day" class="planner-input mt-2"><option value="Lunes">Lunes</option><option value="Martes">Martes</option><option value="Miércoles">Miércoles</option><option value="Jueves">Jueves</option><option value="Viernes">Viernes</option><option value="Sábado">Sábado</option><option value="Domingo">Domingo</option></select>
+                        </label>
+                        <label class="block text-sm text-gray-300 font-semibold">Objetivo / grupo muscular
+                            <select id="planner-category" class="planner-input mt-2" onchange="plannerFilterExercises()">
+                                <option value="all">Todos los objetivos</option><option value="planche">Full Planche · Empuje</option><option value="front">Front Lever · Tracción</option><option value="basicos">Básicos</option><option value="core">Core y abdomen</option><option value="pierna">Pierna y acondicionamiento</option>
+                            </select>
+                        </label>
+                        <label class="block text-sm text-gray-300 font-semibold">Nivel
+                            <select id="planner-level" class="planner-input mt-2" onchange="plannerFilterExercises()"><option value="all">Todos los niveles</option><option value="Principiante">Principiante</option><option value="Intermedio">Intermedio</option><option value="Avanzado">Avanzado</option></select>
+                        </label>
+                        <label class="block text-sm text-gray-300 font-semibold">Ejercicio
+                            <select id="planner-exercise" class="planner-input mt-2"></select>
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+                        <label class="block text-sm text-gray-300 font-semibold">Series
+                            <input id="planner-sets" type="number" min="1" max="20" value="4" class="planner-input mt-2">
+                        </label>
+                        <label class="block text-sm text-gray-300 font-semibold">Repeticiones / segundos
+                            <input id="planner-reps" type="text" maxlength="30" value="8-12 reps" placeholder="Ej. 8 reps / 10s" class="planner-input mt-2">
+                        </label>
+                        <label class="block text-sm text-gray-300 font-semibold col-span-2 sm:col-span-1">Descanso
+                            <input id="planner-rest" type="text" maxlength="20" value="90-120s" placeholder="Ej. 90s" class="planner-input mt-2">
+                        </label>
+                    </div>
+                    <label class="block text-sm text-gray-300 font-semibold mt-4">Notas (opcional)
+                        <input id="planner-notes" type="text" maxlength="140" placeholder="Técnica, tempo, objetivo de la serie..." class="planner-input mt-2">
+                    </label>
+                    <button id="planner-add-btn" onclick="plannerAddExercise()" class="mt-5 w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-ags-red hover:bg-ags-darkRed text-white font-bold px-6 py-3 rounded-xl transition-all shadow-red-glow">
+                        <i class="fa-solid fa-plus"></i> Añadir ejercicio al día
+                    </button>
+                    <p class="text-xs text-gray-500 mt-3">Puedes combinar ejercicios de distintos niveles. Ajusta el volumen a tu capacidad y deja tiempo suficiente para recuperar.</p>
+                </div>
+
+                <aside class="bg-ags-dark border border-ags-grayDark rounded-2xl p-5 sm:p-6">
+                    <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-floppy-disk text-ags-red mr-2"></i>Guardar planificación</h3>
+                    <p class="text-sm text-gray-400 mb-5">Ponle un nombre a tu semana y guárdala para continuar editándola más adelante.</p>
+                    <label class="block text-sm text-gray-300 font-semibold">Nombre de la rutina
+                        <input id="planner-name" type="text" maxlength="50" placeholder="Ej. Objetivo Full Planche" class="planner-input mt-2">
+                    </label>
+                    <button onclick="plannerSave()" class="mt-4 w-full bg-white hover:bg-gray-200 text-ags-black font-bold px-5 py-3 rounded-xl transition-colors"><i class="fa-solid fa-save mr-2"></i>Guardar rutina</button>
+                    <button onclick="plannerNew()" class="mt-3 w-full border border-white/20 hover:border-ags-red text-white font-semibold px-5 py-3 rounded-xl transition-colors"><i class="fa-solid fa-file-circle-plus mr-2"></i>Nueva planificación</button>
+                    <div class="border-t border-ags-grayDark mt-6 pt-5">
+                        <h4 class="text-white font-bold mb-3">Mis rutinas guardadas</h4>
+                        <div id="planner-saved-list" class="space-y-2 text-sm"><p class="text-gray-500">Todavía no tienes rutinas guardadas.</p></div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-5 leading-relaxed"><i class="fa-solid fa-circle-info text-ags-red mr-1"></i>Las rutinas se guardan en este navegador y dispositivo. No se sincronizan todavía entre diferentes dispositivos.</p>
+                </aside>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5">
+                <div><h3 class="text-2xl sm:text-3xl font-bold text-white">TU SEMANA DE ENTRENAMIENTO</h3><p class="text-gray-400 text-sm mt-1">Cada día es independiente. Los días sin ejercicios quedan como descanso.</p></div>
+                <span id="planner-total" class="text-sm text-ags-red font-bold">0 ejercicios · 0 sesiones</span>
+            </div>
+            <div id="planner-week" class="grid sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
         </div>
     </section>
 
@@ -1765,6 +1857,210 @@ window.open(waUrl, '_blank');
         }
         window.addEventListener('DOMContentLoaded', renderAuth);
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAuth(); });
+
+        // ---------------------------------------------------------------------
+        // PLANIFICADOR PERSONALIZADO DE RUTINAS AGS
+        // Persistencia local por usuario / navegador.
+        // ---------------------------------------------------------------------
+        const PLANNER_DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+        const PLANNER_EXERCISES = [
+            {name:'Planche lean',cat:'planche',level:'Principiante',sets:3,reps:'15-20s'},
+            {name:'Scapular push-ups',cat:'planche',level:'Principiante',sets:3,reps:'12-15 reps'},
+            {name:'Pseudo planche push-ups',cat:'planche',level:'Principiante',sets:3,reps:'6-10 reps'},
+            {name:'Tuck planche hold',cat:'planche',level:'Intermedio',sets:4,reps:'8-12s'},
+            {name:'Advanced tuck planche hold',cat:'planche',level:'Intermedio',sets:4,reps:'6-10s'},
+            {name:'Tuck planche push-ups',cat:'planche',level:'Intermedio',sets:3,reps:'4-6 reps'},
+            {name:'Straddle planche hold',cat:'planche',level:'Avanzado',sets:5,reps:'5-8s'},
+            {name:'Full planche hold',cat:'planche',level:'Avanzado',sets:5,reps:'3-6s'},
+            {name:'Planche presses',cat:'planche',level:'Avanzado',sets:4,reps:'2-4 reps'},
+            {name:'Straddle planche push-ups',cat:'planche',level:'Avanzado',sets:4,reps:'2-5 reps'},
+            {name:'Full planche push-ups',cat:'planche',level:'Avanzado',sets:4,reps:'1-3 reps'},
+            {name:'Full planche negatives',cat:'planche',level:'Avanzado',sets:3,reps:'2-4 reps'},
+            {name:'Straddle planche negatives',cat:'planche',level:'Avanzado',sets:3,reps:'3-5 reps'},
+            {name:'Planche push-up (advanced tuck)',cat:'planche',level:'Intermedio',sets:3,reps:'3-6 reps'},
+            {name:'Planche lean push-ups',cat:'planche',level:'Intermedio',sets:3,reps:'6-10 reps'},
+            {name:'Tuck planche raises',cat:'planche',level:'Intermedio',sets:3,reps:'4-6 reps'},
+            {name:'Advanced tuck planche push-ups',cat:'planche',level:'Intermedio',sets:3,reps:'3-5 reps'},
+            {name:'Straddle planche press to handstand',cat:'planche',level:'Avanzado',sets:3,reps:'1-3 reps'},
+            {name:'Planche lean hold (máxima inclinación)',cat:'planche',level:'Principiante',sets:3,reps:'10-20s'},
+            {name:'Band-assisted tuck planche hold',cat:'planche',level:'Principiante',sets:4,reps:'10-15s'},
+            {name:'Band-assisted straddle planche hold',cat:'planche',level:'Intermedio',sets:4,reps:'6-10s'},
+            {name:'Planche lean shoulder taps',cat:'planche',level:'Intermedio',sets:3,reps:'6-10 reps/lado'},
+            {name:'Planche lean to tuck',cat:'planche',level:'Intermedio',sets:3,reps:'4-6 reps'},
+            {name:'Scapular pull-ups',cat:'front',level:'Principiante',sets:3,reps:'10-12 reps'},
+            {name:'Tuck front lever hold',cat:'front',level:'Principiante',sets:4,reps:'10-15s'},
+            {name:'Tuck front lever raises',cat:'front',level:'Principiante',sets:3,reps:'6-8 reps'},
+            {name:'Advanced tuck front lever hold',cat:'front',level:'Intermedio',sets:4,reps:'8-12s'},
+            {name:'Front lever raises',cat:'front',level:'Intermedio',sets:4,reps:'5-8 reps'},
+            {name:'One leg front lever hold',cat:'front',level:'Intermedio',sets:4,reps:'6-10s'},
+            {name:'Straddle front lever hold',cat:'front',level:'Avanzado',sets:5,reps:'5-8s'},
+            {name:'Full front lever hold',cat:'front',level:'Avanzado',sets:5,reps:'3-6s'},
+            {name:'Front lever pull-ups',cat:'front',level:'Avanzado',sets:4,reps:'3-5 reps'},
+            {name:'Front lever touch hold',cat:'front',level:'Avanzado',sets:4,reps:'3-6s'},
+            {name:'Front lever touches',cat:'front',level:'Avanzado',sets:4,reps:'3-5 reps'},
+            {name:'Front lever raises to horizontal',cat:'front',level:'Intermedio',sets:4,reps:'5-8 reps'},
+            {name:'Front lever negatives',cat:'front',level:'Intermedio',sets:3,reps:'3-5 reps'},
+            {name:'Front lever rows (tuck)',cat:'front',level:'Principiante',sets:3,reps:'8-12 reps'},
+            {name:'Front lever rows (advanced tuck)',cat:'front',level:'Intermedio',sets:4,reps:'6-10 reps'},
+            {name:'Front lever rows (straddle)',cat:'front',level:'Avanzado',sets:4,reps:'4-8 reps'},
+            {name:'One leg front lever raises',cat:'front',level:'Intermedio',sets:3,reps:'4-6 reps/lado'},
+            {name:'Straddle front lever pull-ups',cat:'front',level:'Avanzado',sets:4,reps:'2-5 reps'},
+            {name:'Full front lever pull-ups',cat:'front',level:'Avanzado',sets:4,reps:'1-3 reps'},
+            {name:'Ice cream makers (tuck)',cat:'front',level:'Principiante',sets:3,reps:'6-10 reps'},
+            {name:'Ice cream makers (advanced tuck)',cat:'front',level:'Intermedio',sets:3,reps:'5-8 reps'},
+            {name:'Front lever scapular pulls',cat:'front',level:'Principiante',sets:3,reps:'8-12 reps'},
+            {name:'Band-assisted front lever hold',cat:'front',level:'Principiante',sets:4,reps:'10-15s'},
+            {name:'Band-assisted straddle front lever',cat:'front',level:'Intermedio',sets:4,reps:'6-10s'},
+            {name:'Dominadas australianas',cat:'basicos',level:'Principiante',sets:3,reps:'10-15 reps'},
+            {name:'Flexiones',cat:'basicos',level:'Principiante',sets:3,reps:'10-15 reps'},
+            {name:'Fondos asistidos',cat:'basicos',level:'Principiante',sets:3,reps:'8-10 reps'},
+            {name:'Dominadas estrictas',cat:'basicos',level:'Intermedio',sets:4,reps:'6-10 reps'},
+            {name:'Fondos en paralelas',cat:'basicos',level:'Intermedio',sets:4,reps:'8-12 reps'},
+            {name:'Chin-ups',cat:'basicos',level:'Intermedio',sets:3,reps:'8-10 reps'},
+            {name:'Muscle-up con banda',cat:'basicos',level:'Intermedio',sets:3,reps:'3-5 reps'},
+            {name:'Muscle-up estricto',cat:'basicos',level:'Avanzado',sets:4,reps:'3-6 reps'},
+            {name:'Dominadas lastradas',cat:'basicos',level:'Avanzado',sets:4,reps:'4-6 reps'},
+            {name:'Fondos lastrados',cat:'basicos',level:'Avanzado',sets:4,reps:'5-8 reps'},
+            {name:'Flexiones inclinadas',cat:'basicos',level:'Principiante',sets:3,reps:'10-15 reps'},
+            {name:'Flexiones diamante',cat:'basicos',level:'Intermedio',sets:3,reps:'8-12 reps'},
+            {name:'Flexiones declinadas',cat:'basicos',level:'Intermedio',sets:3,reps:'8-12 reps'},
+            {name:'Flexiones archer',cat:'basicos',level:'Avanzado',sets:3,reps:'5-8 reps/lado'},
+            {name:'Dominadas asistidas con banda',cat:'basicos',level:'Principiante',sets:3,reps:'6-10 reps'},
+            {name:'Dominadas pronas',cat:'basicos',level:'Intermedio',sets:4,reps:'5-8 reps'},
+            {name:'Dominadas explosivas al pecho',cat:'basicos',level:'Avanzado',sets:4,reps:'3-5 reps'},
+            {name:'Commando pull-ups',cat:'basicos',level:'Intermedio',sets:3,reps:'6-10 reps'},
+            {name:'Fondos en banco',cat:'basicos',level:'Principiante',sets:3,reps:'10-15 reps'},
+            {name:'Fondos en anillas',cat:'basicos',level:'Avanzado',sets:4,reps:'5-8 reps'},
+            {name:'Ring push-ups',cat:'basicos',level:'Intermedio',sets:3,reps:'8-12 reps'},
+            {name:'Ring rows',cat:'basicos',level:'Principiante',sets:3,reps:'10-15 reps'},
+            {name:'Muscle-up negativo',cat:'basicos',level:'Intermedio',sets:3,reps:'3-5 reps'},
+            {name:'Muscle-up explosivo',cat:'basicos',level:'Avanzado',sets:4,reps:'2-4 reps'},
+            {name:'Straight bar dips',cat:'basicos',level:'Intermedio',sets:3,reps:'6-10 reps'},
+            {name:'Flexiones pike',cat:'basicos',level:'Intermedio',sets:3,reps:'6-10 reps'},
+            {name:'Handstand push-ups asistidas',cat:'basicos',level:'Avanzado',sets:4,reps:'3-6 reps'},
+            {name:'Hollow body hold',cat:'core',level:'Principiante',sets:3,reps:'20-30s'},
+            {name:'Elevaciones de rodillas',cat:'core',level:'Principiante',sets:3,reps:'12-15 reps'},
+            {name:'L-sit tuck',cat:'core',level:'Intermedio',sets:4,reps:'10-15s'},
+            {name:'Elevaciones de piernas colgado',cat:'core',level:'Intermedio',sets:3,reps:'10-12 reps'},
+            {name:'Dragon flag',cat:'core',level:'Avanzado',sets:3,reps:'4-8 reps'},
+            {name:'L-sit completo',cat:'core',level:'Avanzado',sets:4,reps:'10-20s'},
+            {name:'Plancha abdominal',cat:'core',level:'Principiante',sets:3,reps:'30-45s'},
+            {name:'Dead bug',cat:'core',level:'Principiante',sets:3,reps:'10-12 reps/lado'},
+            {name:'Reverse crunch',cat:'core',level:'Principiante',sets:3,reps:'12-15 reps'},
+            {name:'Hanging knee raises',cat:'core',level:'Intermedio',sets:3,reps:'10-15 reps'},
+            {name:'Toes to bar',cat:'core',level:'Avanzado',sets:4,reps:'5-10 reps'},
+            {name:'Windshield wipers',cat:'core',level:'Avanzado',sets:3,reps:'5-8 reps'},
+            {name:'V-sit tuck hold',cat:'core',level:'Intermedio',sets:4,reps:'8-12s'},
+            {name:'V-sit hold',cat:'core',level:'Avanzado',sets:4,reps:'5-10s'},
+            {name:'Sentadillas',cat:'pierna',level:'Principiante',sets:3,reps:'15-20 reps'},
+            {name:'Zancadas',cat:'pierna',level:'Principiante',sets:3,reps:'10 reps/lado'},
+            {name:'Sentadilla búlgara',cat:'pierna',level:'Intermedio',sets:3,reps:'8-12 reps'},
+            {name:'Pistol squat asistida',cat:'pierna',level:'Intermedio',sets:3,reps:'5-8 reps'},
+            {name:'Pistol squat',cat:'pierna',level:'Avanzado',sets:4,reps:'5-8 reps'},
+            {name:'Saltos pliométricos',cat:'pierna',level:'Avanzado',sets:3,reps:'6-8 reps'},
+            {name:'Elevaciones de gemelos',cat:'pierna',level:'Principiante',sets:3,reps:'15-20 reps'},
+            {name:'Puente de glúteos',cat:'pierna',level:'Principiante',sets:3,reps:'12-15 reps'},
+            {name:'Peso muerto a una pierna (sin carga)',cat:'pierna',level:'Intermedio',sets:3,reps:'8-10 reps/lado'},
+            {name:'Nordic curl asistido',cat:'pierna',level:'Intermedio',sets:3,reps:'4-6 reps'},
+            {name:'Shrimp squat',cat:'pierna',level:'Avanzado',sets:3,reps:'5-8 reps/lado'},
+            {name:'Nordic curl',cat:'pierna',level:'Avanzado',sets:3,reps:'3-5 reps'},
+            {name:'Sentadilla con salto',cat:'pierna',level:'Intermedio',sets:3,reps:'8-10 reps'}
+        ];
+        const PLANNER_LABELS = {planche:'Full Planche',front:'Front Lever',basicos:'Básicos',core:'Core',pierna:'Pierna'};
+        let plannerCurrent = {id:null,name:'',days:Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))};
+        let plannerEditing = null;
+        function plannerStorageKey(){
+            const user = (typeof currentUser === 'function' && currentUser()) ? currentUser().email : 'guest';
+            return 'ags_planner_' + (user || 'guest').toLowerCase();
+        }
+        function plannerGetSaved(){ try{return JSON.parse(localStorage.getItem(plannerStorageKey())||'[]')}catch(e){return[]} }
+        function plannerSetSaved(items){ try{localStorage.setItem(plannerStorageKey(),JSON.stringify(items))}catch(e){showToast('No se pudo guardar. Comprueba el espacio del navegador.')} }
+        function plannerEscape(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+        function plannerFilterExercises(){
+            const cat=document.getElementById('planner-category').value, level=document.getElementById('planner-level').value;
+            const select=document.getElementById('planner-exercise'), previous=select.value;
+            const list=PLANNER_EXERCISES.filter(e=>(cat==='all'||e.cat===cat)&&(level==='all'||e.level===level));
+            select.innerHTML=list.map(e=>`<option value="${plannerEscape(e.name)}">${plannerEscape(e.name)} · ${e.level}</option>`).join('');
+            if(list.some(e=>e.name===previous))select.value=previous;
+            plannerExerciseDefaults();
+        }
+        function plannerExerciseDefaults(){
+            const e=PLANNER_EXERCISES.find(x=>x.name===document.getElementById('planner-exercise').value);
+            if(e){document.getElementById('planner-sets').value=e.sets;document.getElementById('planner-reps').value=e.reps;}
+        }
+        function plannerAddExercise(){
+            const day=document.getElementById('planner-day').value, name=document.getElementById('planner-exercise').value;
+            if(!name){showToast('Selecciona un ejercicio.');return}
+            const sets=Number(document.getElementById('planner-sets').value), reps=document.getElementById('planner-reps').value.trim(), rest=document.getElementById('planner-rest').value.trim();
+            if(!Number.isInteger(sets)||sets<1||sets>20||!reps){showToast('Revisa las series y las repeticiones.');return}
+            plannerCurrent.days[day].push({id:'ex_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),name,sets,reps,rest,notes:document.getElementById('planner-notes').value.trim()});
+            plannerRender(); showToast(name+' añadido a '+day);
+        }
+        function plannerRemoveExercise(day,id){
+            plannerCurrent.days[day]=plannerCurrent.days[day].filter(e=>e.id!==id);plannerRender();
+        }
+        function plannerEditExercise(day,id){
+            const ex=plannerCurrent.days[day].find(e=>e.id===id);if(!ex)return;
+            const sets=prompt('Número de series:',ex.sets);if(sets===null)return;
+            const reps=prompt('Repeticiones o segundos:',ex.reps);if(reps===null)return;
+            const rest=prompt('Descanso:',ex.rest||'');if(rest===null)return;
+            if(!Number.isInteger(Number(sets))||Number(sets)<1||Number(sets)>20||!reps.trim()){showToast('Valores no válidos.');return}
+            ex.sets=Number(sets);ex.reps=reps.trim();ex.rest=rest.trim();plannerRender();showToast('Ejercicio actualizado');
+        }
+        function plannerRender(){
+            const week=document.getElementById('planner-week');let total=0,sessions=0;
+            week.innerHTML=PLANNER_DAYS.map(day=>{
+                const items=plannerCurrent.days[day]||[];total+=items.length;if(items.length)sessions++;
+                return `<article class="bg-ags-dark border border-ags-grayDark rounded-2xl p-4 min-h-44">
+                    <div class="flex items-center justify-between border-b border-ags-grayDark pb-3 mb-3"><h4 class="font-bold text-white text-lg">${day}</h4><span class="text-xs ${items.length?'text-ags-red':'text-gray-500'} font-bold">${items.length?items.length+' ejercicios':'Descanso'}</span></div>
+                    ${items.length?items.map(ex=>`<div class="planner-exercise-card mb-2">
+                        <div class="flex items-start justify-between gap-2"><p class="text-white font-semibold text-sm">${plannerEscape(ex.name)}</p><button onclick="plannerRemoveExercise('${day}','${ex.id}')" title="Eliminar ejercicio" class="text-gray-500 hover:text-ags-red shrink-0"><i class="fa-solid fa-trash"></i></button></div>
+                        <p class="text-xs text-gray-400 mt-2">${ex.sets} series · ${plannerEscape(ex.reps)}${ex.rest?' · '+plannerEscape(ex.rest)+' descanso':''}</p>
+                        ${ex.notes?`<p class="text-xs text-gray-500 mt-1">${plannerEscape(ex.notes)}</p>`:''}
+                        <button onclick="plannerEditExercise('${day}','${ex.id}')" class="text-xs text-ags-red hover:text-white mt-2 font-semibold"><i class="fa-solid fa-pen mr-1"></i>Editar parámetros</button>
+                    </div>`).join(''):`<p class="text-sm text-gray-500 py-3">Día libre. Añade ejercicios seleccionando este día arriba.</p>`}
+                    <button onclick="document.getElementById('planner-day').value='${day}';document.getElementById('planner-exercise').focus();document.getElementById('planner-exercise').scrollIntoView({behavior:'smooth',block:'center'})" class="mt-2 text-xs text-gray-400 hover:text-ags-red font-semibold"><i class="fa-solid fa-plus mr-1"></i>Añadir a ${day}</button>
+                </article>`;
+            }).join('');
+            document.getElementById('planner-total').textContent=`${total} ejercicios · ${sessions} sesiones`;
+            document.getElementById('planner-name').value=plannerCurrent.name||'';
+            plannerRenderSaved();
+        }
+        function plannerRenderSaved(){
+            const root=document.getElementById('planner-saved-list'), saved=plannerGetSaved();
+            if(!saved.length){root.innerHTML='<p class="text-gray-500">Todavía no tienes rutinas guardadas.</p>';return}
+            root.innerHTML=saved.map(r=>`<div class="flex items-center gap-2 bg-ags-black border border-ags-grayDark rounded-lg p-2">
+                <button onclick="plannerLoad('${r.id}')" class="min-w-0 flex-1 text-left text-white hover:text-ags-red font-semibold truncate">${plannerEscape(r.name)}</button>
+                <button onclick="plannerDelete('${r.id}')" title="Eliminar rutina" class="text-gray-500 hover:text-ags-red p-2"><i class="fa-solid fa-trash"></i></button>
+            </div>`).join('');
+        }
+        function plannerSave(){
+            const name=document.getElementById('planner-name').value.trim();
+            if(!name){showToast('Escribe un nombre para tu rutina.');document.getElementById('planner-name').focus();return}
+            const saved=plannerGetSaved(), copy=JSON.parse(JSON.stringify(plannerCurrent));
+            copy.id=plannerCurrent.id||('routine_'+Date.now());copy.name=name;copy.updatedAt=new Date().toISOString();
+            const index=saved.findIndex(r=>r.id===copy.id);if(index>=0)saved[index]=copy;else saved.unshift(copy);
+            plannerCurrent=copy;plannerSetSaved(saved);plannerRender();showToast('Planificación guardada correctamente');
+        }
+        function plannerLoad(id){
+            const found=plannerGetSaved().find(r=>r.id===id);if(!found)return;
+            plannerCurrent=JSON.parse(JSON.stringify(found));plannerRender();showToast('Rutina cargada');
+            document.getElementById('planner-name').scrollIntoView({behavior:'smooth',block:'center'});
+        }
+        function plannerDelete(id){
+            if(!confirm('¿Eliminar esta planificación guardada?'))return;
+            plannerSetSaved(plannerGetSaved().filter(r=>r.id!==id));
+            if(plannerCurrent.id===id)plannerNew();else plannerRenderSaved();
+            showToast('Rutina eliminada');
+        }
+        function plannerNew(){
+            plannerCurrent={id:null,name:'',days:Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))};
+            plannerRender();document.getElementById('planner-name').focus();
+        }
+        window.addEventListener('DOMContentLoaded',()=>{
+            const exercise=document.getElementById('planner-exercise');
+            if(exercise){plannerFilterExercises();plannerRender();}
+        });
     </script>
 </body>
 </html>
