@@ -896,7 +896,7 @@ tion-all shadow-red-glow">
                     <button id="tab-register" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-sm font-bold uppercase tracking-wider">Registrarse</button>
                 </div>
                 <div id="g-btn" class="flex justify-center"></div>
-                <button id="g-fallback" type="button" onclick="googleNotReady()" class="w-full flex items-center justify-center gap-3 bg-white text-ags-black font-semibold py-2.5 rounded-lg hover:bg-gray-100 transition-colors"><i class="fa-brands fa-google text-ags-red"></i>Continuar con Google</button>
+                <button id="g-fallback" type="button" onclick="signInWithGoogle()" class="w-full flex items-center justify-center gap-3 bg-white text-ags-black font-semibold py-2.5 rounded-lg hover:bg-gray-100 transition-colors"><i class="fa-brands fa-google text-ags-red"></i>Continuar con Google</button>
                 <p id="g-msg" class="hidden text-xs text-amber-300 bg-ags-black rounded-lg p-3"></p>
                 <div class="flex items-center gap-3 text-xs text-gray-500"><span class="flex-1 h-px bg-ags-grayDark"></span>o con tu email<span class="flex-1 h-px bg-ags-grayDark"></span></div>
                 <form id="auth-form" onsubmit="submitAuth(event)" class="space-y-3" novalidate>
@@ -920,6 +920,8 @@ tion-all shadow-red-glow">
         <i class="fa-solid fa-circle-check text-ags-red"></i>
         <span id="toast-message" class="text-sm font-semibold">Añadido a tu plan</span>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- =====================================================================
          LÓGICA DE LA APLICACIÓN (JAVASCRIPT)
@@ -1728,33 +1730,20 @@ window.open(waUrl, '_blank');
         });
 
         // ---------------------------------------------------------------------
-        // 9. LOGIN / REGISTRO (EMAIL + GOOGLE)
+        // 9. AUTENTICACIÓN SUPABASE (EMAIL + CONTRASEÑA)
         // ---------------------------------------------------------------------
-        // Pega aquí tu "ID de cliente" de Google Cloud (OAuth 2.0, aplicación web).
-        const GOOGLE_CLIENT_ID = '191922502504-724ktiucnaerpct7ic5emmikmoj1kkdo.apps.googleusercontent.com';
-        const K_USERS = 'ags_users', K_SESSION = 'ags_session';
-        const st = {
-            get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
-            set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
-            del(k) { try { localStorage.removeItem(k); } catch (e) {} }
-        };
-        let authTab = 'login', gisLoaded = false;
+        const SUPABASE_URL = 'https://bqujkljfwzeuzmwrwnis.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_7NiVABODPNUu7xhZUlQyKQ_0UeQeokR';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let authTab = 'login';
+        let agsAuthUser = null;
 
-        async function hashPw(pw, salt) {
-            const data = salt + pw;
-            if (window.crypto && crypto.subtle) {
-                const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data));
-                return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
-            }
-            let h = 5381; for (const c of data) h = ((h << 5) + h + c.charCodeAt(0)) | 0; return 'x' + h;
-        }
-        function currentUser() { return st.get(K_SESSION); }
-
+        function currentUser() { return agsAuthUser; }
         function openAuth(tab) {
             const m = document.getElementById('auth-modal');
             m.classList.remove('hidden'); m.classList.add('flex');
             renderAuth();
-            if (!currentUser()) { switchAuthTab(tab || 'login'); initGoogle(); }
+            if (!currentUser()) switchAuthTab(tab || 'login');
         }
         function closeAuth() {
             const m = document.getElementById('auth-modal');
@@ -1779,88 +1768,99 @@ window.open(waUrl, '_blank');
         async function submitAuth(ev) {
             ev.preventDefault();
             const email = document.getElementById('auth-email').value.trim().toLowerCase();
-            const pw = document.getElementById('auth-pass').value;
-            const users = st.get(K_USERS) || {};
+            const password = document.getElementById('auth-pass').value;
             if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return authError('Introduce un email válido.');
-            if (pw.length < 8) return authError('La contraseña debe tener al menos 8 caracteres.');
-            if (authTab === 'register') {
-                const name = document.getElementById('auth-name').value.trim();
-                if (!name) return authError('Escribe tu nombre.');
-                if (pw !== document.getElementById('auth-pass2').value) return authError('Las contraseñas no coinciden.');
-                if (users[email]) return authError('Ya existe una cuenta con ese email. Inicia sesión.');
-                const salt = Math.random().toString(36).slice(2);
-                users[email] = { name, salt, hash: await hashPw(pw, salt) };
-                st.set(K_USERS, users);
-                setSession({ name, email, provider: 'email' });
-                showToast('Cuenta creada. ¡Bienvenido, ' + name.split(' ')[0] + '!');
-            } else {
-                const u = users[email];
-                if (!u || u.hash !== await hashPw(pw, u.salt)) return authError('Email o contraseña incorrectos.');
-                setSession({ name: u.name, email, provider: 'email' });
-                showToast('Sesión iniciada');
+            if (password.length < 8) return authError('La contraseña debe tener al menos 8 caracteres.');
+            const button = document.getElementById('auth-submit');
+            button.disabled = true; button.textContent = 'Un momento...';
+            try {
+                let result;
+                if (authTab === 'register') {
+                    const name = document.getElementById('auth-name').value.trim();
+                    if (!name) return authError('Escribe tu nombre.');
+                    if (password !== document.getElementById('auth-pass2').value) return authError('Las contraseñas no coinciden.');
+                    result = await supabaseClient.auth.signUp({
+                        email, password,
+                        options: { data: { full_name: name } }
+                    });
+                    if (result.error) throw result.error;
+                    if (!result.data.session) {
+                        authError('Cuenta creada. Revisa tu correo para confirmar la dirección y después inicia sesión.');
+                        return;
+                    }
+                    showToast('Cuenta creada. ¡Bienvenido!');
+                } else {
+                    result = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (result.error) throw result.error;
+                    showToast('Sesión iniciada');
+                }
+                document.getElementById('auth-form').reset();
+                closeAuth();
+                await refreshPlannerFromCloud();
+            } catch (error) {
+                console.error('Error de autenticación:', error);
+                authError(error.message || 'No se pudo iniciar sesión. Comprueba tus datos.');
+            } finally {
+                button.disabled = false;
+                button.textContent = authTab === 'register' ? 'Registrarme' : 'Iniciar sesión';
             }
-            document.getElementById('auth-form').reset();
-            closeAuth();
         }
-        function setSession(u) { st.set(K_SESSION, u); renderAuth(); }
-        function logout() { st.del(K_SESSION); renderAuth(); closeAuth(); showToast('Sesión cerrada'); }
-
+        async function logout() {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) { showToast('No se pudo cerrar sesión'); console.error(error); return; }
+            agsAuthUser = null;
+            plannerSavedCache = [];
+            plannerCurrent = {id:null,name:'',days:Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))};
+            renderAuth(); plannerRender(); closeAuth(); showToast('Sesión cerrada');
+        }
         function renderAuth() {
             const u = currentUser();
             document.getElementById('auth-guest').classList.toggle('hidden', !!u);
             document.getElementById('auth-user').classList.toggle('hidden', !u);
-            document.getElementById('auth-btn-label').textContent = u ? u.name.split(' ')[0] : 'Acceder';
+            document.getElementById('auth-btn-label').textContent = u ? (u.user_metadata?.full_name || u.email.split('@')[0]).split(' ')[0] : 'Acceder';
             document.getElementById('auth-btn').onclick = () => openAuth();
             if (u) {
+                const name = u.user_metadata?.full_name || u.user_metadata?.name || u.email.split('@')[0];
                 document.getElementById('auth-title').textContent = 'Mi cuenta';
-                document.getElementById('auth-user-name').textContent = u.name;
+                document.getElementById('auth-user-name').textContent = name;
                 document.getElementById('auth-user-email').textContent = u.email;
                 const av = document.getElementById('auth-avatar');
                 av.textContent = '';
-                if (u.picture) { const i = document.createElement('img'); i.src = u.picture; i.alt = ''; i.referrerPolicy = 'no-referrer'; i.className = 'w-full h-full object-cover'; av.appendChild(i); }
-                else av.textContent = u.name.charAt(0).toUpperCase();
+                const picture = u.user_metadata?.avatar_url || u.user_metadata?.picture;
+                if (picture) { const i = document.createElement('img'); i.src = picture; i.alt = ''; i.referrerPolicy = 'no-referrer'; i.className = 'w-full h-full object-cover'; av.appendChild(i); }
+                else av.textContent = name.charAt(0).toUpperCase();
                 const n = document.getElementById('client-name'), c = document.getElementById('client-contact');
-                if (n && !n.value) n.value = u.name;
+                if (n && !n.value) n.value = name;
                 if (c && !c.value) c.value = u.email;
             }
         }
-
-        // --- Google Identity Services ---
-        function googleConfigured() { return GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith('TU_CLIENT_ID'); }
+        async function signInWithGoogle() {
+            const { error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.origin + window.location.pathname }
+            });
+            if (error) authError(error.message);
+        }
         function googleNotReady() {
-            const m = document.getElementById('g-msg');
-            m.textContent = 'El acceso con Google aún no está activado en esta web: falta añadir el ID de cliente de Google (GOOGLE_CLIENT_ID).';
-            m.classList.remove('hidden');
+            authError('Para activar Google, primero habilita el proveedor Google en Authentication → Sign In / Providers de Supabase y configura sus credenciales OAuth.');
         }
-        function initGoogle() {
-            if (!googleConfigured()) return;
-            const render = () => {
-                google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogle });
-                const box = document.getElementById('g-btn'); box.innerHTML = '';
-                google.accounts.id.renderButton(box, { theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'rectangular', width: 320, locale: 'es' });
-                document.getElementById('g-fallback').classList.add('hidden');
-            };
-            if (gisLoaded) return render();
-            const s = document.createElement('script');
-            s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
-            s.onload = () => { gisLoaded = true; render(); };
-            s.onerror = googleNotReady;
-            document.head.appendChild(s);
-        }
-        function onGoogle(resp) {
-            try {
-                const p = JSON.parse(decodeURIComponent(escape(atob(resp.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))));
-                setSession({ name: p.name || p.email, email: p.email, picture: p.picture, provider: 'google' });
-                closeAuth();
-                showToast('Sesión iniciada con Google');
-            } catch (e) { authError('No se pudo iniciar sesión con Google.'); }
-        }
-        window.addEventListener('DOMContentLoaded', renderAuth);
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data, error } = await supabaseClient.auth.getSession();
+            if (error) console.error(error);
+            agsAuthUser = data?.session?.user || null;
+            renderAuth();
+            await refreshPlannerFromCloud();
+            supabaseClient.auth.onAuthStateChange((_event, session) => {
+                agsAuthUser = session?.user || null;
+                renderAuth();
+                setTimeout(() => refreshPlannerFromCloud(), 0);
+            });
+        });
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAuth(); });
 
         // ---------------------------------------------------------------------
         // PLANIFICADOR PERSONALIZADO DE RUTINAS AGS
-        // Persistencia local por usuario / navegador.
+        // Persistencia en la nube mediante Supabase por usuario autenticado.
         // ---------------------------------------------------------------------
         const PLANNER_DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
         const PLANNER_EXERCISES = [
@@ -1969,12 +1969,25 @@ window.open(waUrl, '_blank');
         const PLANNER_LABELS = {planche:'Full Planche',front:'Front Lever',basicos:'Básicos',core:'Core',pierna:'Pierna'};
         let plannerCurrent = {id:null,name:'',days:Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))};
         let plannerEditing = null;
-        function plannerStorageKey(){
-            const user = (typeof currentUser === 'function' && currentUser()) ? currentUser().email : 'guest';
-            return 'ags_planner_' + (user || 'guest').toLowerCase();
+        // Las rutinas se guardan en Supabase, no en el almacenamiento local.
+        let plannerSavedCache = [];
+        function plannerGetSaved(){ return plannerSavedCache; }
+        async function refreshPlannerFromCloud(){
+            if (!currentUser()) { plannerSavedCache = []; plannerRenderSaved(); return; }
+            const { data, error } = await supabaseClient
+                .from('workout_plans').select('id,name,plan_data,created_at,updated_at')
+                .eq('user_id', currentUser().id).order('updated_at', {ascending:false});
+            if (error) { console.error('Error cargando rutinas:', error); showToast('No se pudieron cargar las rutinas'); return; }
+            plannerSavedCache = (data || []).map(row => ({
+                id: row.id, name: row.name,
+                days: row.plan_data?.days || Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))
+            }));
+            if (plannerCurrent.id) {
+                const current = plannerSavedCache.find(r => r.id === plannerCurrent.id);
+                if (current) plannerCurrent = JSON.parse(JSON.stringify(current));
+            }
+            plannerRender();
         }
-        function plannerGetSaved(){ try{return JSON.parse(localStorage.getItem(plannerStorageKey())||'[]')}catch(e){return[]} }
-        function plannerSetSaved(items){ try{localStorage.setItem(plannerStorageKey(),JSON.stringify(items))}catch(e){showToast('No se pudo guardar. Comprueba el espacio del navegador.')} }
         function plannerEscape(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
         function plannerFilterExercises(){
             const cat=document.getElementById('planner-category').value, level=document.getElementById('planner-level').value;
@@ -2034,24 +2047,34 @@ window.open(waUrl, '_blank');
                 <button onclick="plannerDelete('${r.id}')" title="Eliminar rutina" class="text-gray-500 hover:text-ags-red p-2"><i class="fa-solid fa-trash"></i></button>
             </div>`).join('');
         }
-        function plannerSave(){
+        async function plannerSave(){
+            const user = currentUser();
+            if (!user) { showToast('Inicia sesión para guardar tus rutinas en la nube.'); openAuth('login'); return; }
             const name=document.getElementById('planner-name').value.trim();
             if(!name){showToast('Escribe un nombre para tu rutina.');document.getElementById('planner-name').focus();return}
-            const saved=plannerGetSaved(), copy=JSON.parse(JSON.stringify(plannerCurrent));
-            copy.id=plannerCurrent.id||('routine_'+Date.now());copy.name=name;copy.updatedAt=new Date().toISOString();
-            const index=saved.findIndex(r=>r.id===copy.id);if(index>=0)saved[index]=copy;else saved.unshift(copy);
-            plannerCurrent=copy;plannerSetSaved(saved);plannerRender();showToast('Planificación guardada correctamente');
+            const payload = { user_id:user.id, name, plan_data:{days:plannerCurrent.days} };
+            let result;
+            if (plannerCurrent.id) {
+                result = await supabaseClient.from('workout_plans').update({name,plan_data:payload.plan_data,updated_at:new Date().toISOString()}).eq('id',plannerCurrent.id).eq('user_id',user.id).select().single();
+            } else {
+                result = await supabaseClient.from('workout_plans').insert(payload).select().single();
+            }
+            if (result.error) { console.error('Error guardando rutina:',result.error); showToast('No se pudo guardar: '+result.error.message); return; }
+            plannerCurrent.id=result.data.id; plannerCurrent.name=result.data.name;
+            await refreshPlannerFromCloud(); showToast('Rutina guardada en la nube correctamente');
         }
         function plannerLoad(id){
             const found=plannerGetSaved().find(r=>r.id===id);if(!found)return;
             plannerCurrent=JSON.parse(JSON.stringify(found));plannerRender();showToast('Rutina cargada');
             document.getElementById('planner-name').scrollIntoView({behavior:'smooth',block:'center'});
         }
-        function plannerDelete(id){
+        async function plannerDelete(id){
             if(!confirm('¿Eliminar esta planificación guardada?'))return;
-            plannerSetSaved(plannerGetSaved().filter(r=>r.id!==id));
-            if(plannerCurrent.id===id)plannerNew();else plannerRenderSaved();
-            showToast('Rutina eliminada');
+            const user=currentUser(); if(!user)return;
+            const {error}=await supabaseClient.from('workout_plans').delete().eq('id',id).eq('user_id',user.id);
+            if(error){console.error(error);showToast('No se pudo eliminar la rutina');return;}
+            if(plannerCurrent.id===id)plannerNew();
+            await refreshPlannerFromCloud();showToast('Rutina eliminada');
         }
         function plannerNew(){
             plannerCurrent={id:null,name:'',days:Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))};
