@@ -783,7 +783,15 @@
     </aside>
 
     <!-- Notificación Toast Flotante (Sin usar alert()) -->
-    <!-- ===== LOGIN / REGISTRO ===== -->
+
+<!-- Botón flotante WhatsApp -->
+<a href="https://wa.me/34695755238?text=Hola%20Alejandro%2C%20quiero%20informaci%C3%B3n%20sobre%20AGS%20Calisthenics"
+   target="_blank" rel="noopener" aria-label="Escríbeme por WhatsApp"
+   class="fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center text-3xl shadow-2xl transition-transform hover:scale-110">
+  <i class="fa-brands fa-whatsapp"></i>
+</a>
+ 
+   <!-- ===== LOGIN / REGISTRO ===== -->
     <div id="auth-modal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onclick="if(event.target===this)closeAuth()">
         <div class="w-full max-w-md bg-ags-dark text-white rounded-2xl border border-ags-grayDark shadow-dark-card overflow-hidden">
             <div class="flex items-center justify-between px-6 pt-5 pb-3 border-b-4 border-ags-red">
@@ -1543,6 +1551,9 @@ Total estimado: ${totalPrice}€`;
                 `Gracias <strong>${name}</strong>. Alejandro García Simón revisará tu perfil (<strong>${modality} · Nivel ${level}</strong>) y se pondrá en contacto contigo vía <strong>${contact}</strong> en menos de 24 horas.`;
             document.getElementById('confirmation-summary-box').textContent = summaryText;
 	    enviarSolicitudPorEmail(name, contact, summaryText);
+
+const waUrl = 'https://wa.me/34695755238?text=' + encodeURIComponent(summaryText);document.getElementById('confirmation-details').innerHTML += ' <a href="' + waUrl + '" target="_blank" rel="noopener" class="inline-flex items-center gap-2 mt-3 bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-lg"><i class="fa-brands fa-whatsapp"></i> Enviar por WhatsApp</a>';
+window.open(waUrl, '_blank');
 
             document.getElementById('checkout-form').classList.add('hidden');
             document.getElementById('order-confirmation').classList.remove('hidden');
