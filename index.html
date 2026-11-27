@@ -921,7 +921,10 @@ tion-all shadow-red-glow">
         <span id="toast-message" class="text-sm font-semibold">Añadido a tu plan</span>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Firebase SDKs (App, Auth y Firestore) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
     <!-- =====================================================================
          LÓGICA DE LA APLICACIÓN (JAVASCRIPT)
@@ -1730,11 +1733,23 @@ window.open(waUrl, '_blank');
         });
 
         // ---------------------------------------------------------------------
-        // 9. AUTENTICACIÓN SUPABASE (EMAIL + CONTRASEÑA)
+        // 9. AUTENTICACIÓN Y BASE DE DATOS CON FIREBASE (AUTH + FIRESTORE)
         // ---------------------------------------------------------------------
-        const SUPABASE_URL = 'https://bqujkljfwzeuzmwrwnis.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_7NiVABODPNUu7xhZUlQyKQ_0UeQeokR';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // ⚠️ REEMPLAZA ESTOS VALORES CON LOS DE TU PROYECTO EN FIREBASE CONSOLE
+        // (Configuración del proyecto -> Tus apps -> SDK setup and configuration)
+        const firebaseConfig = {
+            apiKey: "TU_FIREBASE_API_KEY",
+            authDomain: "TU_PROYECTO.firebaseapp.com",
+            projectId: "TU_PROYECTO_ID",
+            storageBucket: "TU_PROYECTO.appspot.com",
+            messagingSenderId: "TU_MESSAGING_SENDER_ID",
+            appId: "TU_APP_ID"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const fbAuth = firebase.auth();
+        const fbDb = firebase.firestore();
+
         let authTab = 'login';
         let agsAuthUser = null;
 
@@ -1765,6 +1780,17 @@ window.open(waUrl, '_blank');
             const e = document.getElementById('auth-err');
             e.textContent = msg; e.classList.toggle('hidden', !msg);
         }
+        function mapFirebaseAuthError(err) {
+            const code = err?.code || '';
+            if (code === 'auth/email-already-in-use') return 'Este correo electrónico ya está registrado.';
+            if (code === 'auth/invalid-email') return 'Introduce un correo electrónico válido.';
+            if (code === 'auth/weak-password') return 'La contraseña debe tener al menos 6 caracteres.';
+            if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+                return 'Correo o contraseña incorrectos.';
+            }
+            if (code === 'auth/popup-closed-by-user') return 'Se cerró la ventana de inicio de sesión con Google.';
+            return err?.message || 'No se pudo completar la autenticación.';
+        }
         async function submitAuth(ev) {
             ev.preventDefault();
             const email = document.getElementById('auth-email').value.trim().toLowerCase();
@@ -1774,93 +1800,99 @@ window.open(waUrl, '_blank');
             const button = document.getElementById('auth-submit');
             button.disabled = true; button.textContent = 'Un momento...';
             try {
-                let result;
                 if (authTab === 'register') {
                     const name = document.getElementById('auth-name').value.trim();
                     if (!name) return authError('Escribe tu nombre.');
                     if (password !== document.getElementById('auth-pass2').value) return authError('Las contraseñas no coinciden.');
-                    result = await supabaseClient.auth.signUp({
-                        email, password,
-                        options: { data: { full_name: name } }
-                    });
-                    if (result.error) throw result.error;
-                    if (!result.data.session) {
-                        authError('Cuenta creada. Revisa tu correo para confirmar la dirección y después inicia sesión.');
-                        return;
-                    }
+                    const cred = await fbAuth.createUserWithEmailAndPassword(email, password);
+                    await cred.user.updateProfile({ displayName: name });
+                    agsAuthUser = cred.user;
+                    renderAuth();
                     showToast('Cuenta creada. ¡Bienvenido!');
                 } else {
-                    result = await supabaseClient.auth.signInWithPassword({ email, password });
-                    if (result.error) throw result.error;
+                    const cred = await fbAuth.signInWithEmailAndPassword(email, password);
+                    agsAuthUser = cred.user;
+                    renderAuth();
                     showToast('Sesión iniciada');
                 }
                 document.getElementById('auth-form').reset();
                 closeAuth();
                 await refreshPlannerFromCloud();
             } catch (error) {
-                console.error('Error de autenticación:', error);
-                authError(error.message || 'No se pudo iniciar sesión. Comprueba tus datos.');
+                console.error('Error de autenticación Firebase:', error);
+                authError(mapFirebaseAuthError(error));
             } finally {
                 button.disabled = false;
                 button.textContent = authTab === 'register' ? 'Registrarme' : 'Iniciar sesión';
             }
         }
         async function logout() {
-            const { error } = await supabaseClient.auth.signOut();
-            if (error) { showToast('No se pudo cerrar sesión'); console.error(error); return; }
-            agsAuthUser = null;
-            plannerSavedCache = [];
-            plannerCurrent = {id:null,name:'',days:Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))};
-            renderAuth(); plannerRender(); closeAuth(); showToast('Sesión cerrada');
+            try {
+                await fbAuth.signOut();
+                agsAuthUser = null;
+                plannerSavedCache = [];
+                plannerCurrent = {id:null,name:'',days:Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))};
+                renderAuth(); plannerRender(); closeAuth(); showToast('Sesión cerrada');
+            } catch (error) {
+                showToast('No se pudo cerrar sesión');
+                console.error(error);
+            }
         }
         function renderAuth() {
             const u = currentUser();
             document.getElementById('auth-guest').classList.toggle('hidden', !!u);
             document.getElementById('auth-user').classList.toggle('hidden', !u);
-            document.getElementById('auth-btn-label').textContent = u ? (u.user_metadata?.full_name || u.email.split('@')[0]).split(' ')[0] : 'Acceder';
+            document.getElementById('auth-btn-label').textContent = u ? (u.displayName || u.email.split('@')[0]).split(' ')[0] : 'Acceder';
             document.getElementById('auth-btn').onclick = () => openAuth();
             if (u) {
-                const name = u.user_metadata?.full_name || u.user_metadata?.name || u.email.split('@')[0];
+                const name = u.displayName || u.email.split('@')[0];
                 document.getElementById('auth-title').textContent = 'Mi cuenta';
                 document.getElementById('auth-user-name').textContent = name;
                 document.getElementById('auth-user-email').textContent = u.email;
                 const av = document.getElementById('auth-avatar');
                 av.textContent = '';
-                const picture = u.user_metadata?.avatar_url || u.user_metadata?.picture;
-                if (picture) { const i = document.createElement('img'); i.src = picture; i.alt = ''; i.referrerPolicy = 'no-referrer'; i.className = 'w-full h-full object-cover'; av.appendChild(i); }
-                else av.textContent = name.charAt(0).toUpperCase();
+                if (u.photoURL) {
+                    const i = document.createElement('img');
+                    i.src = u.photoURL; i.alt = ''; i.referrerPolicy = 'no-referrer';
+                    i.className = 'w-full h-full object-cover';
+                    av.appendChild(i);
+                } else {
+                    av.textContent = name.charAt(0).toUpperCase();
+                }
                 const n = document.getElementById('client-name'), c = document.getElementById('client-contact');
                 if (n && !n.value) n.value = name;
                 if (c && !c.value) c.value = u.email;
             }
         }
         async function signInWithGoogle() {
-            const { error } = await supabaseClient.auth.signInWithOAuth({
-                provider: 'google',
-                options: { redirectTo: window.location.origin + window.location.pathname }
-            });
-            if (error) authError(error.message);
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const cred = await fbAuth.signInWithPopup(provider);
+                agsAuthUser = cred.user;
+                renderAuth();
+                closeAuth();
+                showToast('Sesión iniciada con Google');
+                await refreshPlannerFromCloud();
+            } catch (error) {
+                console.error('Error Google Sign-In:', error);
+                authError(mapFirebaseAuthError(error));
+            }
         }
         function googleNotReady() {
-            authError('Para activar Google, primero habilita el proveedor Google en Authentication → Sign In / Providers de Supabase y configura sus credenciales OAuth.');
+            authError('Para activar Google, habilita el proveedor Google en Firebase Console → Authentication → Sign-in method.');
         }
-        window.addEventListener('DOMContentLoaded', async () => {
-            const { data, error } = await supabaseClient.auth.getSession();
-            if (error) console.error(error);
-            agsAuthUser = data?.session?.user || null;
+
+        fbAuth.onAuthStateChanged(async (user) => {
+            agsAuthUser = user || null;
             renderAuth();
             await refreshPlannerFromCloud();
-            supabaseClient.auth.onAuthStateChange((_event, session) => {
-                agsAuthUser = session?.user || null;
-                renderAuth();
-                setTimeout(() => refreshPlannerFromCloud(), 0);
-            });
         });
+
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAuth(); });
 
         // ---------------------------------------------------------------------
         // PLANIFICADOR PERSONALIZADO DE RUTINAS AGS
-        // Persistencia en la nube mediante Supabase por usuario autenticado.
+        // Persistencia en la nube mediante Firebase Firestore por usuario autenticado.
         // ---------------------------------------------------------------------
         const PLANNER_DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
         const PLANNER_EXERCISES = [
@@ -1969,24 +2001,34 @@ window.open(waUrl, '_blank');
         const PLANNER_LABELS = {planche:'Full Planche',front:'Front Lever',basicos:'Básicos',core:'Core',pierna:'Pierna'};
         let plannerCurrent = {id:null,name:'',days:Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))};
         let plannerEditing = null;
-        // Las rutinas se guardan en Supabase, no en el almacenamiento local.
         let plannerSavedCache = [];
         function plannerGetSaved(){ return plannerSavedCache; }
+
         async function refreshPlannerFromCloud(){
-            if (!currentUser()) { plannerSavedCache = []; plannerRenderSaved(); return; }
-            const { data, error } = await supabaseClient
-                .from('workout_plans').select('id,name,plan_data,created_at,updated_at')
-                .eq('user_id', currentUser().id).order('updated_at', {ascending:false});
-            if (error) { console.error('Error cargando rutinas:', error); showToast('No se pudieron cargar las rutinas'); return; }
-            plannerSavedCache = (data || []).map(row => ({
-                id: row.id, name: row.name,
-                days: row.plan_data?.days || Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))
-            }));
-            if (plannerCurrent.id) {
-                const current = plannerSavedCache.find(r => r.id === plannerCurrent.id);
-                if (current) plannerCurrent = JSON.parse(JSON.stringify(current));
+            const user = currentUser();
+            if (!user) { plannerSavedCache = []; plannerRenderSaved(); return; }
+            try {
+                const snap = await fbDb.collection('users').doc(user.uid)
+                    .collection('workout_plans')
+                    .orderBy('updatedAt', 'desc')
+                    .get();
+                plannerSavedCache = snap.docs.map(doc => {
+                    const row = doc.data();
+                    return {
+                        id: doc.id,
+                        name: row.name || 'Rutina sin nombre',
+                        days: row.plan_data?.days || Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))
+                    };
+                });
+                if (plannerCurrent.id) {
+                    const current = plannerSavedCache.find(r => r.id === plannerCurrent.id);
+                    if (current) plannerCurrent = JSON.parse(JSON.stringify(current));
+                }
+                plannerRender();
+            } catch (error) {
+                console.error('Error cargando rutinas desde Firestore:', error);
+                showToast('No se pudieron cargar las rutinas de Firebase');
             }
-            plannerRender();
         }
         function plannerEscape(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
         function plannerFilterExercises(){
@@ -2052,16 +2094,28 @@ window.open(waUrl, '_blank');
             if (!user) { showToast('Inicia sesión para guardar tus rutinas en la nube.'); openAuth('login'); return; }
             const name=document.getElementById('planner-name').value.trim();
             if(!name){showToast('Escribe un nombre para tu rutina.');document.getElementById('planner-name').focus();return}
-            const payload = { user_id:user.id, name, plan_data:{days:plannerCurrent.days} };
-            let result;
-            if (plannerCurrent.id) {
-                result = await supabaseClient.from('workout_plans').update({name,plan_data:payload.plan_data,updated_at:new Date().toISOString()}).eq('id',plannerCurrent.id).eq('user_id',user.id).select().single();
-            } else {
-                result = await supabaseClient.from('workout_plans').insert(payload).select().single();
+            try {
+                const plansRef = fbDb.collection('users').doc(user.uid).collection('workout_plans');
+                const nowIso = new Date().toISOString();
+                const payload = {
+                    name,
+                    plan_data: { days: plannerCurrent.days },
+                    updatedAt: nowIso
+                };
+                if (plannerCurrent.id) {
+                    await plansRef.doc(plannerCurrent.id).update(payload);
+                } else {
+                    payload.createdAt = nowIso;
+                    const docRef = await plansRef.add(payload);
+                    plannerCurrent.id = docRef.id;
+                }
+                plannerCurrent.name = name;
+                await refreshPlannerFromCloud();
+                showToast('Rutina guardada en Firebase correctamente');
+            } catch (error) {
+                console.error('Error guardando rutina en Firestore:', error);
+                showToast('No se pudo guardar: ' + (error.message || 'Error en Firebase'));
             }
-            if (result.error) { console.error('Error guardando rutina:',result.error); showToast('No se pudo guardar: '+result.error.message); return; }
-            plannerCurrent.id=result.data.id; plannerCurrent.name=result.data.name;
-            await refreshPlannerFromCloud(); showToast('Rutina guardada en la nube correctamente');
         }
         function plannerLoad(id){
             const found=plannerGetSaved().find(r=>r.id===id);if(!found)return;
@@ -2071,10 +2125,15 @@ window.open(waUrl, '_blank');
         async function plannerDelete(id){
             if(!confirm('¿Eliminar esta planificación guardada?'))return;
             const user=currentUser(); if(!user)return;
-            const {error}=await supabaseClient.from('workout_plans').delete().eq('id',id).eq('user_id',user.id);
-            if(error){console.error(error);showToast('No se pudo eliminar la rutina');return;}
-            if(plannerCurrent.id===id)plannerNew();
-            await refreshPlannerFromCloud();showToast('Rutina eliminada');
+            try {
+                await fbDb.collection('users').doc(user.uid).collection('workout_plans').doc(id).delete();
+                if(plannerCurrent.id===id)plannerNew();
+                await refreshPlannerFromCloud();
+                showToast('Rutina eliminada');
+            } catch (error) {
+                console.error('Error eliminando rutina:', error);
+                showToast('No se pudo eliminar la rutina');
+            }
         }
         function plannerNew(){
             plannerCurrent={id:null,name:'',days:Object.fromEntries(PLANNER_DAYS.map(d=>[d,[]]))};
